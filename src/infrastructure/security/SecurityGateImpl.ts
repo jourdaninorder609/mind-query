@@ -1,15 +1,15 @@
-import type { ISecurityGate } from '@/core/interfaces/ISecurityGate'
-import type { SecurityReport } from '@/core/entities/SecurityReport'
-import type { ClaudeClient } from '../llm/ClaudeClient'
 import { SECURITY_GATE_PROMPT } from '@/application/prompts/securityGatePrompt'
+import type { SecurityReport } from '@/core/entities/SecurityReport'
+import type { ILLMClient } from '@/core/interfaces/ILLMClient'
+import type { ISecurityGate } from '@/core/interfaces/ISecurityGate'
 
 export class SecurityGateImpl implements ISecurityGate {
-  constructor(private readonly claude: ClaudeClient) {}
+  constructor(private readonly llm: ILLMClient) {}
 
   async validate(prompt: string): Promise<SecurityReport> {
     // The user prompt is passed as the user message, never interpolated
     // into the system prompt — prevents Second-Order Prompt Injection.
-    const response = await this.claude.complete(SECURITY_GATE_PROMPT, prompt)
+    const response = await this.llm.complete(SECURITY_GATE_PROMPT, prompt)
 
     try {
       const match = response.match(/\{[\s\S]*\}/)

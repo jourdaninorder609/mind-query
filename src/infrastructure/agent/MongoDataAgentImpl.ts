@@ -1,13 +1,13 @@
-import type { IDataAgent } from '@/core/interfaces/IDataAgent'
-import type { IQueryExecutor } from '@/core/interfaces/IQueryExecutor'
-import type { QueryResult } from '@/core/entities/QueryResult'
-import type { ClaudeClient } from '../llm/ClaudeClient'
 import { buildMongoAgentPrompt } from '@/application/prompts/mongoDataAgentPrompt'
+import type { QueryResult } from '@/core/entities/QueryResult'
+import type { IDataAgent } from '@/core/interfaces/IDataAgent'
+import type { ILLMClient } from '@/core/interfaces/ILLMClient'
+import type { IQueryExecutor } from '@/core/interfaces/IQueryExecutor'
 
 const MAX_RETRIES = 3
 
 export class MongoDataAgentImpl implements IDataAgent {
-  constructor(private readonly claude: ClaudeClient) {}
+  constructor(private readonly llm: ILLMClient) {}
 
   async process(prompt: string, executor: IQueryExecutor): Promise<QueryResult> {
     const collections = await executor.listTables()
@@ -21,7 +21,7 @@ export class MongoDataAgentImpl implements IDataAgent {
           ? prompt
           : `${prompt}\n\n[Lần ${attempt + 1}/${MAX_RETRIES}] Lỗi trước: "${lastError}". Vui lòng sửa query.`
 
-      const response = await this.claude.complete(systemPrompt, userMsg)
+      const response = await this.llm.complete(systemPrompt, userMsg)
       const match = response.match(/```json\n([\s\S]*?)\n```/)
       if (!match) {
         lastError = 'Không tìm thấy JSON trong phản hồi'

@@ -33,7 +33,7 @@ User Prompt
                     │ isSafe = true
                     ▼
 ┌────────────────────────────────────────────────┐
-│  Layer 2 · Data Agent     (LLM + retry x3)    │
+│  Layer 2 · Data Agent     (LLM + retry x3)     │
 │  Generates SQL or MongoDB query from schema    │
 └───────────────────┬────────────────────────────┘
                     │ raw rows

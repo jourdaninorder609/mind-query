@@ -1,6 +1,7 @@
+import type { ILLMClient } from '@/core/interfaces/ILLMClient'
 import Anthropic from '@anthropic-ai/sdk'
 
-export class ClaudeClient {
+export class ClaudeClient implements ILLMClient {
   private readonly client: Anthropic
 
   constructor(apiKey: string) {
