@@ -26,7 +26,7 @@ export class SecurityGateImpl implements ISecurityGate {
       return {
         isSafe: false,
         riskScore: 100,
-        reason: 'Không thể phân tích bảo mật — chặn để an toàn',
+        reason: 'Failed to parse security report — blocking for safety',
         detectedPatterns: ['parse_failure'],
       }
     }

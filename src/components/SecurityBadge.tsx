@@ -14,21 +14,21 @@ export function SecurityBadge({ report, compact }: Props) {
 
   const icon = isSafe ? '✓' : '✕'
   const label = isSafe
-    ? riskScore < 20 ? 'An toàn' : 'Chú ý'
-    : 'Bị chặn'
+    ? riskScore < 20 ? 'Safe' : 'Caution'
+    : 'Blocked'
 
   if (compact) {
     return (
       <span className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border ${color}`}>
-        {icon} {label} ({riskScore})
+        {icon} {label} · {riskScore}
       </span>
     )
   }
 
   return (
     <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border ${color}`}>
-      <span className="font-bold">{icon} Bảo mật: {label}</span>
-      <span>Điểm rủi ro: {riskScore}/100</span>
+      <span className="font-bold">{icon} Security: {label}</span>
+      <span>Risk score: {riskScore}/100</span>
       {report.detectedPatterns.length > 0 && (
         <span>• {report.detectedPatterns.join(', ')}</span>
       )}

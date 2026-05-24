@@ -48,7 +48,7 @@ export class DemoExecutor implements IQueryExecutor {
         email TEXT NOT NULL,
         phone TEXT,
         city TEXT,
-        country TEXT DEFAULT 'Vietnam',
+        country TEXT DEFAULT 'US',
         created_at TEXT DEFAULT (datetime('now'))
       );
       CREATE TABLE products (
@@ -71,21 +71,21 @@ export class DemoExecutor implements IQueryExecutor {
 
     const ic = db.prepare('INSERT INTO customers (name,email,phone,city) VALUES (?,?,?,?)')
     ;[
-      ['Nguyễn Văn An', 'an.nguyen@example.com', '0901234567', 'Hà Nội'],
-      ['Trần Thị Bình', 'binh.tran@example.com', '0912345678', 'TP.HCM'],
-      ['Lê Văn Cường', 'cuong.le@example.com', '0923456789', 'Đà Nẵng'],
-      ['Phạm Thị Dung', 'dung.pham@example.com', '0934567890', 'Hải Phòng'],
-      ['Hoàng Văn Em', 'em.hoang@example.com', '0945678901', 'Cần Thơ'],
-      ['Vũ Thị Phương', 'phuong.vu@example.com', '0956789012', 'Huế'],
+      ['Alice Johnson', 'alice.j@example.com', '+1-555-0101', 'New York'],
+      ['Bob Smith', 'bob.smith@example.com', '+1-555-0102', 'Los Angeles'],
+      ['Carol Williams', 'carol.w@example.com', '+1-555-0103', 'Chicago'],
+      ['David Brown', 'david.b@example.com', '+1-555-0104', 'Houston'],
+      ['Eva Martinez', 'eva.m@example.com', '+1-555-0105', 'Phoenix'],
+      ['Frank Lee', 'frank.l@example.com', '+1-555-0106', 'Seattle'],
     ].forEach((r) => ic.run(...r))
 
     const ip = db.prepare('INSERT INTO products (name,category,price,stock) VALUES (?,?,?,?)')
     ;[
-      ['Laptop Dell XPS 13', 'Electronics', 28990000, 15],
-      ['iPhone 15 Pro', 'Electronics', 33990000, 8],
-      ['Tai nghe AirPods Pro', 'Electronics', 6490000, 25],
-      ['Chuột Logitech MX Master', 'Accessories', 2290000, 40],
-      ['Bàn phím Keychron K2', 'Accessories', 1890000, 30],
+      ['Dell XPS 13 Laptop', 'Electronics', 1299, 15],
+      ['iPhone 15 Pro', 'Electronics', 999, 8],
+      ['AirPods Pro', 'Electronics', 249, 25],
+      ['Logitech MX Master Mouse', 'Accessories', 99, 40],
+      ['Keychron K2 Keyboard', 'Accessories', 89, 30],
     ].forEach((r) => ip.run(...r))
 
     const io = db.prepare('INSERT INTO orders (customer_id,product_id,quantity,total_price,status) VALUES (?,?,?,?,?)')

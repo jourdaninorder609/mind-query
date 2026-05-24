@@ -3,22 +3,23 @@ import { useEffect, useRef, useState, useCallback, type FormEvent, type Keyboard
 import { Header } from './Header'
 import { SchemaSidebar } from './SchemaSidebar'
 import { MessageBubble, TypingIndicator, type Message } from './MessageBubble'
+import { SettingsModal } from './SettingsModal'
 import type { DbType } from '@/lib/container'
 import type { QueryResponse } from '@/types/api'
 
 const WELCOME: Message = {
   id: 'welcome',
   role: 'assistant',
-  content: 'Xin chào! Tôi là Mind Query Agent. Hãy đặt câu hỏi bằng tiếng Việt hoặc tiếng Anh về dữ liệu của bạn.',
+  content: 'Hello! I am Mind Query Agent. Ask me anything about your data in natural language.',
   result: undefined,
   timestamp: new Date(),
 }
 
 const QUICK_PROMPTS = [
-  'Cho tôi xem 10 bản ghi mới nhất',
-  'Tổng số bản ghi trong mỗi bảng?',
-  'Thống kê theo thành phố',
-  'Top 5 sản phẩm bán chạy nhất',
+  'Show me the 10 most recent records',
+  'How many records are in each table?',
+  'Show statistics grouped by city',
+  'Top 5 best-selling products',
 ]
 
 function generateId() {
@@ -33,19 +34,20 @@ export function ChatInterface() {
   const [availableDbs, setAvailableDbs] = useState<DbType[]>(['demo'])
   const [tables, setTables] = useState<string[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Load available DBs on mount
-  useEffect(() => {
+  function reloadAvailableDbs() {
     fetch('/api/health')
       .then((r) => r.json())
       .then((d: { available: DbType[] }) => setAvailableDbs(d.available ?? ['demo']))
       .catch(() => {})
-  }, [])
+  }
 
-  // Load schema when DB changes
+  useEffect(() => { reloadAvailableDbs() }, [])
+
   useEffect(() => {
     setTables([])
     fetch(`/api/schema?dbType=${activeDb}`)
@@ -54,7 +56,6 @@ export function ChatInterface() {
       .catch(() => {})
   }, [activeDb])
 
-  // Auto-scroll to bottom
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
@@ -63,14 +64,10 @@ export function ChatInterface() {
     async (prompt: string) => {
       if (!prompt.trim() || isLoading) return
 
-      const userMsg: Message = {
-        id: generateId(),
-        role: 'user',
-        content: prompt.trim(),
-        timestamp: new Date(),
-      }
-
-      setMessages((prev) => [...prev, userMsg])
+      setMessages((prev) => [
+        ...prev,
+        { id: generateId(), role: 'user', content: prompt.trim(), timestamp: new Date() },
+      ])
       setInput('')
       setIsLoading(true)
 
@@ -91,7 +88,7 @@ export function ChatInterface() {
           const err = data as { success: false; error: string }
           setMessages((prev) => [
             ...prev,
-            { id: generateId(), role: 'error', content: err.error ?? 'Đã có lỗi xảy ra', timestamp: new Date() },
+            { id: generateId(), role: 'error', content: err.error ?? 'An unexpected error occurred', timestamp: new Date() },
           ])
         } else {
           setMessages((prev) => [
@@ -102,7 +99,7 @@ export function ChatInterface() {
       } catch {
         setMessages((prev) => [
           ...prev,
-          { id: generateId(), role: 'error', content: 'Không thể kết nối đến server. Vui lòng thử lại.', timestamp: new Date() },
+          { id: generateId(), role: 'error', content: 'Could not reach the server. Please try again.', timestamp: new Date() },
         ])
       } finally {
         setIsLoading(false)
@@ -136,6 +133,7 @@ export function ChatInterface() {
         activeDb={activeDb}
         onDbChange={handleDbChange}
         onClearHistory={() => setMessages([WELCOME])}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       <div className="flex flex-1 min-h-0">
@@ -152,24 +150,24 @@ export function ChatInterface() {
           />
         </aside>
 
-        {/* Toggle sidebar button */}
+        {/* Sidebar toggle */}
         <button
           onClick={() => setSidebarOpen((o) => !o)}
           className="absolute left-0 top-1/2 -translate-y-1/2 ml-0.5 z-20 w-4 h-10 bg-slate-700 hover:bg-slate-600 rounded-r text-slate-400 hover:text-slate-200 flex items-center justify-center text-xs transition-colors"
           style={{ marginLeft: sidebarOpen ? '14rem' : '0' }}
-          title={sidebarOpen ? 'Ẩn sidebar' : 'Hiện sidebar'}
+          title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
         >
           {sidebarOpen ? '‹' : '›'}
         </button>
 
-        {/* Main chat area */}
+        {/* Chat area */}
         <main className="flex flex-col flex-1 min-w-0">
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
-            {/* Quick prompts (shown only at start) */}
             {messages.length === 1 && (
               <div className="fade-in max-w-2xl mx-auto pt-4">
-                <p className="text-center text-slate-400 text-sm mb-4">Bắt đầu với một câu hỏi hoặc thử gợi ý sau:</p>
+                <p className="text-center text-slate-400 text-sm mb-4">
+                  Start with a question or try one of these suggestions:
+                </p>
                 <div className="grid grid-cols-2 gap-2">
                   {QUICK_PROMPTS.map((p) => (
                     <button
@@ -193,7 +191,7 @@ export function ChatInterface() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input area */}
+          {/* Input bar */}
           <div className="border-t border-slate-700 bg-slate-900 px-4 py-3">
             <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
               <div className="flex items-end gap-2 bg-slate-800 border border-slate-600 focus-within:border-indigo-500/70 rounded-2xl px-4 py-2.5 transition-colors">
@@ -203,7 +201,7 @@ export function ChatInterface() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   disabled={isLoading}
-                  placeholder="Nhập câu hỏi bằng tiếng Việt hoặc tiếng Anh… (Enter để gửi, Shift+Enter xuống dòng)"
+                  placeholder="Ask anything about your data… (Enter to send, Shift+Enter for new line)"
                   rows={1}
                   className="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-500 resize-none outline-none leading-relaxed max-h-32 overflow-y-auto disabled:opacity-50"
                   style={{ scrollbarWidth: 'none' }}
@@ -212,27 +210,37 @@ export function ChatInterface() {
                   type="submit"
                   disabled={isLoading || !input.trim()}
                   className="flex-shrink-0 w-8 h-8 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
-                  title="Gửi (Enter)"
+                  title="Send (Enter)"
                 >
                   {isLoading ? (
                     <svg className="w-4 h-4 text-white animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                     </svg>
                   ) : (
                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                   )}
                 </button>
               </div>
               <p className="text-xs text-slate-500 mt-1.5 text-center">
-                Chỉ được phép đọc dữ liệu • Mọi yêu cầu được kiểm tra bảo mật trước khi thực thi
+                Read-only mode · All requests are security-checked before execution
               </p>
             </form>
           </div>
         </main>
       </div>
+
+      {settingsOpen && (
+        <SettingsModal
+          onClose={() => setSettingsOpen(false)}
+          onSettingsChanged={() => {
+            reloadAvailableDbs()
+            setSettingsOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -2,7 +2,7 @@ import type { IQueryExecutor, TableSchema } from '@/core/interfaces/IQueryExecut
 import type { IMcpClient } from '../mcp/IMcpClient'
 
 interface MongoQuery {
-  operation: 'find' | 'aggregate'
+  operation: 'find' | 'aggregate' | 'listCollections' | 'listDatabases'
   collection: string
   filter?: Record<string, unknown>
   projection?: Record<string, unknown>
@@ -55,6 +55,21 @@ export class MongoDbMcpExecutor implements IQueryExecutor {
 
   async executeQuery(queryJson: string): Promise<Record<string, unknown>[]> {
     const q = JSON.parse(queryJson) as MongoQuery
+
+    if (q.operation === 'listDatabases') {
+      const result = await this.mcp.callTool<unknown>('list_databases', {})
+      const dbs = Array.isArray(result) ? result : []
+      return (dbs as Array<{ name: string; sizeOnDisk?: number; empty?: boolean }>).map((db) => ({
+        name: db.name,
+        sizeOnDisk: db.sizeOnDisk ?? 0,
+        empty: db.empty ?? false,
+      }))
+    }
+
+    if (q.operation === 'listCollections') {
+      const collections = await this.listTables()
+      return collections.map((name) => ({ collection: name, database: this.database }))
+    }
 
     if (q.operation === 'aggregate') {
       const result = await this.mcp.callTool<unknown>('aggregate', {

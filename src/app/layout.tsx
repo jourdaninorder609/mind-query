@@ -3,12 +3,12 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'mind-query — AI Data Agent',
-  description: 'Hỏi dữ liệu bằng ngôn ngữ tự nhiên, kết nối đa cơ sở dữ liệu qua MCP',
+  description: 'Ask questions about your data in natural language, connected to multiple databases via MCP',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="vi" className="dark h-full">
+    <html lang="en" className="dark h-full">
       <body className="h-full">{children}</body>
     </html>
   )

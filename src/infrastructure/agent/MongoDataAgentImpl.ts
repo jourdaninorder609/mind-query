@@ -19,19 +19,19 @@ export class MongoDataAgentImpl implements IDataAgent {
       const userMsg =
         attempt === 0
           ? prompt
-          : `${prompt}\n\n[Lần ${attempt + 1}/${MAX_RETRIES}] Lỗi trước: "${lastError}". Vui lòng sửa query.`
+          : `${prompt}\n\n[Attempt ${attempt + 1}/${MAX_RETRIES}] Previous error: "${lastError}". Please fix the query.`
 
       const response = await this.llm.complete(systemPrompt, userMsg)
       const match = response.match(/```json\n([\s\S]*?)\n```/)
       if (!match) {
-        lastError = 'Không tìm thấy JSON trong phản hồi'
+        lastError = 'No JSON found in response'
         continue
       }
 
       try {
         JSON.parse(match[1]) // validate JSON before passing to executor
       } catch {
-        lastError = 'JSON không hợp lệ'
+        lastError = 'Invalid JSON'
         continue
       }
 
@@ -53,6 +53,6 @@ export class MongoDataAgentImpl implements IDataAgent {
       }
     }
 
-    throw new Error(`MongoDB query thất bại sau ${MAX_RETRIES} lần thử. Lỗi cuối: ${lastError}`)
+    throw new Error(`MongoDB query failed after ${MAX_RETRIES} attempts. Last error: ${lastError}`)
   }
 }

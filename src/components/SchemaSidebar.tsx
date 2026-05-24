@@ -9,9 +9,9 @@ interface Props {
 }
 
 const SUGGESTIONS = [
-  'Cho tôi xem 10 bản ghi mới nhất',
-  'Đếm tổng số bản ghi',
-  'Thống kê theo từng nhóm',
+  'Show me the 10 most recent records',
+  'Count total records',
+  'Show statistics by group',
 ]
 
 export function SchemaSidebar({ tables, dbType, onQuerySuggestion }: Props) {
@@ -36,7 +36,7 @@ export function SchemaSidebar({ tables, dbType, onQuerySuggestion }: Props) {
       <div className="flex-1 overflow-y-auto py-2">
         {tables.length === 0 ? (
           <div className="px-4 py-3 text-xs text-slate-500 italic">
-            Không có bảng nào — kiểm tra kết nối MCP
+            No tables found — check MCP connection
           </div>
         ) : (
           <ul>
@@ -54,7 +54,7 @@ export function SchemaSidebar({ tables, dbType, onQuerySuggestion }: Props) {
                     {SUGGESTIONS.map((s) => (
                       <button
                         key={s}
-                        onClick={() => onQuerySuggestion(`${s} trong bảng ${table}`)}
+                        onClick={() => onQuerySuggestion(`${s} in the ${table} table`)}
                         className="w-full text-left text-xs text-slate-400 hover:text-indigo-400 py-0.5 transition-colors"
                       >
                         → {s}
@@ -69,7 +69,7 @@ export function SchemaSidebar({ tables, dbType, onQuerySuggestion }: Props) {
       </div>
 
       <div className="px-4 py-3 border-t border-slate-700">
-        <p className="text-xs text-slate-500">Click vào table để gợi ý câu hỏi</p>
+        <p className="text-xs text-slate-500">Click a table to see query suggestions</p>
       </div>
     </div>
   )

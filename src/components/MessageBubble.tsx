@@ -18,7 +18,7 @@ interface Props {
 
 export function MessageBubble({ message }: Props) {
   const { role, content, result, timestamp } = message
-  const time = timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+  const time = timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
   if (role === 'user') {
     return (
@@ -42,13 +42,13 @@ export function MessageBubble({ message }: Props) {
           <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-2xl rounded-tl-sm text-sm">
             {blocked && result && 'riskScore' in result && (
               <div className="font-semibold mb-1 flex items-center gap-2">
-                <span>🚫 Yêu cầu bị chặn</span>
-                <span className="text-xs bg-red-500/20 px-2 py-0.5 rounded-full">Điểm rủi ro: {result.riskScore}/100</span>
+                <span>🚫 Request Blocked</span>
+                <span className="text-xs bg-red-500/20 px-2 py-0.5 rounded-full">Risk Score: {result.riskScore}/100</span>
               </div>
             )}
             <p>{content}</p>
             {result && 'detectedPatterns' in result && result.detectedPatterns?.length > 0 && (
-              <p className="mt-1 text-xs text-red-400/70">Phát hiện: {result.detectedPatterns.join(', ')}</p>
+              <p className="mt-1 text-xs text-red-400/70">Detected: {result.detectedPatterns.join(', ')}</p>
             )}
           </div>
           <div className="text-xs text-slate-500 mt-1 ml-1">{time}</div>
@@ -70,10 +70,10 @@ export function MessageBubble({ message }: Props) {
             <>
               <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
                 <span className="text-sm text-slate-200 font-medium">
-                  Tìm thấy <span className="text-indigo-400">{successResult.rowCount}</span> kết quả
+                  Found <span className="text-indigo-400">{successResult.rowCount}</span> {successResult.rowCount === 1 ? 'result' : 'results'}
                   {successResult.tablesAccessed.length > 0 && (
                     <span className="text-slate-400 text-xs ml-2">
-                      từ {successResult.tablesAccessed.join(', ')}
+                      from {successResult.tablesAccessed.join(', ')}
                     </span>
                   )}
                 </span>

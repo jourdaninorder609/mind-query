@@ -9,10 +9,10 @@ export async function POST(req: NextRequest) {
     const dbType: unknown = body?.dbType ?? 'demo'
 
     if (typeof prompt !== 'string' || prompt.trim().length === 0) {
-      return NextResponse.json({ success: false, error: 'Prompt không được để trống' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Prompt is required' }, { status: 400 })
     }
     if (prompt.length > 2000) {
-      return NextResponse.json({ success: false, error: 'Prompt quá dài (tối đa 2000 ký tự)' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Prompt too long (max 2000 characters)' }, { status: 400 })
     }
 
     const pipeline = createPipeline(dbType as DbType)
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       maskedFields: result.filteredResult.maskedFields,
       executionTimeMs: result.queryResult.executionTimeMs,
       tablesAccessed: result.queryResult.tablesAccessed,
-      dialect: pipeline['executor' as keyof typeof pipeline],
+      dialect: pipeline.getDialect(),
     })
   } catch (err) {
     if (err instanceof SecurityViolationError) {
@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
         error: err.message,
       }, { status: 403 })
     }
-    const msg = err instanceof Error ? err.message : 'Lỗi không xác định'
+    const raw = err instanceof Error ? err.message : 'Unknown error'
+    const msg = raw.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
     return NextResponse.json({ success: false, error: msg }, { status: 500 })
   }
 }

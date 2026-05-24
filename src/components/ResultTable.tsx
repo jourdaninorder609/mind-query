@@ -15,7 +15,7 @@ export function ResultTable({ data, maskedFields = [] }: Props) {
   if (data.length === 0) {
     return (
       <div className="flex items-center gap-2 py-4 text-slate-400 text-sm italic">
-        <span>○</span> Không tìm thấy dữ liệu
+        <span>○</span> No data found
       </div>
     )
   }
@@ -42,7 +42,7 @@ export function ResultTable({ data, maskedFields = [] }: Props) {
       {maskedFields.length > 0 && (
         <div className="flex items-center gap-1.5 mb-2 text-xs text-amber-400">
           <span>🔒</span>
-          <span>Trường ẩn (PII): {maskedFields.join(', ')}</span>
+          <span>Hidden fields (PII): {maskedFields.join(', ')}</span>
         </div>
       )}
       <div className="overflow-x-auto rounded-lg border border-slate-700">
@@ -89,7 +89,7 @@ export function ResultTable({ data, maskedFields = [] }: Props) {
       </div>
       <div className="flex items-center justify-between mt-2 text-xs text-slate-400">
         <div className="flex items-center gap-2">
-          <span>{data.length} dòng</span>
+          <span>{data.length} {data.length === 1 ? 'row' : 'rows'}</span>
           <button
             onClick={exportCsv}
             className="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors"

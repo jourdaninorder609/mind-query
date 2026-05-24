@@ -40,7 +40,7 @@ ${dialectRules}
 4. Prefer explicit JOINs over implicit comma-separated tables.
 5. If the question cannot be answered from the schema, use:
    \`\`\`sql
-   SELECT 'Dữ liệu không có trong schema' AS message
+   SELECT 'No data available in schema for this question' AS message
    \`\`\`
 
 ## CHAIN OF THOUGHT (think silently before writing SQL)

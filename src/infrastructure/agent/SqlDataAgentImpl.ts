@@ -21,18 +21,18 @@ export class SqlDataAgentImpl implements IDataAgent {
       const userMsg =
         attempt === 0
           ? prompt
-          : `${prompt}\n\n[Lần ${attempt + 1}/${MAX_RETRIES}] Lỗi trước: "${lastError}". Vui lòng sửa câu SQL.`
+          : `${prompt}\n\n[Attempt ${attempt + 1}/${MAX_RETRIES}] Previous error: "${lastError}". Please fix the SQL.`
 
       const response = await this.llm.complete(systemPrompt, userMsg)
       const match = response.match(/```sql\n([\s\S]*?)\n```/)
       if (!match) {
-        lastError = 'Không tìm thấy SQL trong phản hồi'
+        lastError = 'No SQL found in response'
         continue
       }
 
       const sql = match[1].trim()
       if (!SELECT_ONLY.test(sql) || DANGEROUS.test(sql)) {
-        lastError = `Câu lệnh không phải SELECT: ${sql.substring(0, 60)}`
+        lastError = `Not a SELECT statement: ${sql.substring(0, 60)}`
         continue
       }
 
@@ -54,6 +54,6 @@ export class SqlDataAgentImpl implements IDataAgent {
       }
     }
 
-    throw new Error(`Query thất bại sau ${MAX_RETRIES} lần thử. Lỗi cuối: ${lastError}`)
+    throw new Error(`Query failed after ${MAX_RETRIES} attempts. Last error: ${lastError}`)
   }
 }

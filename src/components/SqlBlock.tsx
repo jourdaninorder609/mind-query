@@ -55,13 +55,13 @@ export function SqlBlock({ query, dialect }: { query: string; dialect?: string }
             onClick={() => setExpanded(!expanded)}
             className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
           >
-            {expanded ? '▲ Thu gọn' : '▼ Mở rộng'}
+            {expanded ? '▲ Collapse' : '▼ Expand'}
           </button>
           <button
             onClick={copy}
             className="text-xs px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors"
           >
-            {copied ? '✓ Đã sao chép' : 'Sao chép'}
+            {copied ? '✓ Copied!' : 'Copy'}
           </button>
         </div>
       </div>

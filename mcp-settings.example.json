@@ -1,0 +1,40 @@
+{
+  "llm": {
+    "provider": "openai",
+    "apiKey": "YOUR_API_KEY",
+    "baseUrl": "https://api.z.ai/api/paas/v4",
+    "model": "glm-5.1"
+  },
+  "postgres": {
+    "enabled": false,
+    "url": "http://localhost:3101",
+    "execPath": "",
+    "startCommand": "npm start",
+    "database": "",
+    "schema": ""
+  },
+  "mysql": {
+    "enabled": false,
+    "url": "http://localhost:3103",
+    "execPath": "",
+    "startCommand": "npm start",
+    "database": "",
+    "schema": ""
+  },
+  "sqlserver": {
+    "enabled": false,
+    "url": "http://localhost:3102",
+    "execPath": "",
+    "startCommand": "npm start",
+    "database": "",
+    "schema": "dbo"
+  },
+  "mongodb": {
+    "enabled": false,
+    "url": "http://localhost:3100",
+    "execPath": "/path/to/mongodb-mcp",
+    "startCommand": "npm start",
+    "database": "mydb",
+    "schema": ""
+  }
+}

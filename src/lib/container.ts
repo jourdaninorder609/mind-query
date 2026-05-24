@@ -1,12 +1,13 @@
 import { QueryPipeline } from '@/application/pipeline/QueryPipeline'
-import type { IDataAgent } from '@/core/interfaces/IDataAgent'
 import type { ILLMClient } from '@/core/interfaces/ILLMClient'
+import { readSettings } from '@/lib/settings'
+import type { McpServerConfig } from '@/lib/settings'
 import type { IQueryExecutor } from '@/core/interfaces/IQueryExecutor'
 import { ExecuteQueryUseCase } from '@/core/use-cases/ExecuteQueryUseCase'
 import { FilterOutputUseCase } from '@/core/use-cases/FilterOutputUseCase'
 import { ValidateSecurityUseCase } from '@/core/use-cases/ValidateSecurityUseCase'
-import { MongoDataAgentImpl } from '@/infrastructure/agent/MongoDataAgentImpl'
 import { SqlDataAgentImpl } from '@/infrastructure/agent/SqlDataAgentImpl'
+import { ToolCallingDataAgent } from '@/infrastructure/agent/ToolCallingDataAgent'
 import { FileAuditLogger } from '@/infrastructure/audit/FileAuditLogger'
 import { DemoExecutor } from '@/infrastructure/database/DemoExecutor'
 import { MongoDbMcpExecutor } from '@/infrastructure/database/MongoDbMcpExecutor'
@@ -41,82 +42,124 @@ export const DB_CONFIG: Record<DbType, { label: string; color: string; envKey: s
  *   openai:    LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
  */
 function getLLMClient(): ILLMClient {
-  const provider = (process.env.LLM_PROVIDER ?? 'anthropic').toLowerCase().trim()
+  // Settings file takes priority over env vars
+  const llm = readSettings().llm
+  const provider = (llm.provider || 'anthropic').toLowerCase().trim()
 
   switch (provider) {
     case 'anthropic': {
-      const key = process.env.ANTHROPIC_API_KEY
-      if (!key) throw new Error('ANTHROPIC_API_KEY không được cấu hình')
+      const key = llm.apiKey || process.env.ANTHROPIC_API_KEY
+      if (!key) throw new Error('Anthropic API key is not configured. Add it in Settings → LLM Provider.')
       return new ClaudeClient(key)
     }
 
     case 'openai': {
-      const key = process.env.LLM_API_KEY
-      const baseURL = process.env.LLM_BASE_URL
-      const model = process.env.LLM_MODEL
-      if (!key) throw new Error('LLM_API_KEY không được cấu hình (cần cho OpenAI-compatible provider)')
-      if (!baseURL) throw new Error('LLM_BASE_URL không được cấu hình (cần cho OpenAI-compatible provider)')
-      if (!model) throw new Error('LLM_MODEL không được cấu hình (cần cho OpenAI-compatible provider)')
+      const key     = llm.apiKey  || process.env.LLM_API_KEY
+      const baseURL = llm.baseUrl || process.env.LLM_BASE_URL
+      const model   = llm.model   || process.env.LLM_MODEL
+      if (!key)     throw new Error('API key is not configured. Add it in Settings → LLM Provider.')
+      if (!baseURL) throw new Error('Base URL is not configured. Add it in Settings → LLM Provider.')
+      if (!model)   throw new Error('Model is not configured. Add it in Settings → LLM Provider.')
       return new OpenAICompatibleClient(key, baseURL, model)
     }
 
     default:
-      throw new Error(`LLM_PROVIDER không hỗ trợ: "${provider}". Dùng "anthropic" hoặc "openai".`)
+      throw new Error(`Unsupported provider: "${provider}". Use "anthropic" or "openai".`)
   }
 }
 
-function createExecutor(dbType: DbType): IQueryExecutor {
-  switch (dbType) {
-    case 'postgres': {
-      const url = process.env.POSTGRES_MCP_URL
-      if (!url) throw new Error('POSTGRES_MCP_URL chưa được cấu hình')
-      return new PostgresMcpExecutor(new McpClient(url))
-    }
-    case 'mysql': {
-      const url = process.env.MYSQL_MCP_URL
-      if (!url) throw new Error('MYSQL_MCP_URL chưa được cấu hình')
-      return new MySqlMcpExecutor(new McpClient(url))
-    }
-    case 'sqlserver': {
-      const url = process.env.SQLSERVER_MCP_URL
-      if (!url) throw new Error('SQLSERVER_MCP_URL chưa được cấu hình')
-      return new SqlServerMcpExecutor(new McpClient(url), process.env.SQLSERVER_SCHEMA ?? 'dbo')
-    }
-    case 'mongodb': {
-      const url = process.env.MONGODB_MCP_URL
-      if (!url) throw new Error('MONGODB_MCP_URL chưa được cấu hình')
-      return new MongoDbMcpExecutor(new McpClient(url), process.env.MONGODB_DATABASE ?? 'mydb')
-    }
-    default:
-      return new DemoExecutor()
+/**
+ * Build an McpClient for a given server config.
+ *
+ * Transport selection:
+ *   - If execPath + startCommand are set  → stdio mode (spawn the process directly)
+ *   - Otherwise                           → SSE mode (connect to url)
+ *
+ * In stdio mode the full process.env is passed to the child, with cfg.uri
+ * injected as the appropriate connection-string env var for each DB type.
+ */
+function buildMcpClient(
+  cfg: McpServerConfig,
+  fallbackUrl?: string,
+  uriEnvKey?: string,
+): McpClient {
+  const execPath = cfg.execPath?.trim()
+  const startCmd = cfg.startCommand?.trim()
+
+  if (execPath && startCmd) {
+    const [command, ...args] = startCmd.split(/\s+/)
+    const envOverrides: Record<string, string> = {}
+    if (uriEnvKey && cfg.uri?.trim()) envOverrides[uriEnvKey] = cfg.uri.trim()
+    return new McpClient({ type: 'stdio', command, args, cwd: execPath, envOverrides })
   }
+
+  const url = cfg.url || fallbackUrl
+  if (!url) throw new Error('Neither execPath nor URL is configured for this MCP server')
+  return new McpClient({ type: 'sse', url })
 }
 
-function createDataAgent(dbType: DbType, llm: ILLMClient): IDataAgent {
-  return dbType === 'mongodb' ? new MongoDataAgentImpl(llm) : new SqlDataAgentImpl(llm)
+function isConfigured(cfg: McpServerConfig, envUrl?: string): boolean {
+  return Boolean(cfg.execPath?.trim() || cfg.url || envUrl)
 }
+
 
 // Each pipeline is created fresh per request (stateless for serverless compatibility)
 export function createPipeline(dbType: DbType): QueryPipeline {
-  const llm = getLLMClient()
-  const executor = createExecutor(dbType)
-  const agent = createDataAgent(dbType, llm)
+  const llm    = getLLMClient()
   const logger = new FileAuditLogger()
+  const security = new ValidateSecurityUseCase(new SecurityGateImpl(llm))
+  const filter   = new FilterOutputUseCase(new OutputFilterImpl())
 
-  return new QueryPipeline(
-    new ValidateSecurityUseCase(new SecurityGateImpl(llm)),
-    new ExecuteQueryUseCase(agent),
-    new FilterOutputUseCase(new OutputFilterImpl()),
-    logger,
-    executor
-  )
+  if (dbType === 'demo') {
+    const executor = new DemoExecutor()
+    const agent    = new SqlDataAgentImpl(llm)
+    return new QueryPipeline(security, new ExecuteQueryUseCase(agent), filter, logger, executor)
+  }
+
+  // Real DB: share one MCP client between executor and ToolCallingDataAgent
+  const cfg = readSettings()
+  let mcp: McpClient
+  let executor: IQueryExecutor
+
+  switch (dbType) {
+    case 'postgres':
+      if (!isConfigured(cfg.postgres, process.env.POSTGRES_MCP_URL))
+        throw new Error('PostgreSQL is not configured (set Exec Path or URL in Settings)')
+      mcp      = buildMcpClient(cfg.postgres, process.env.POSTGRES_MCP_URL, 'POSTGRES_URI')
+      executor = new PostgresMcpExecutor(mcp)
+      break
+    case 'mysql':
+      if (!isConfigured(cfg.mysql, process.env.MYSQL_MCP_URL))
+        throw new Error('MySQL is not configured (set Exec Path or URL in Settings)')
+      mcp      = buildMcpClient(cfg.mysql, process.env.MYSQL_MCP_URL, 'MYSQL_URI')
+      executor = new MySqlMcpExecutor(mcp)
+      break
+    case 'sqlserver':
+      if (!isConfigured(cfg.sqlserver, process.env.SQLSERVER_MCP_URL))
+        throw new Error('SQL Server is not configured (set Exec Path or URL in Settings)')
+      mcp      = buildMcpClient(cfg.sqlserver, process.env.SQLSERVER_MCP_URL, 'SQLSERVER_URI')
+      executor = new SqlServerMcpExecutor(mcp, cfg.sqlserver.schema || process.env.SQLSERVER_SCHEMA || 'dbo')
+      break
+    case 'mongodb':
+    default:
+      if (!isConfigured(cfg.mongodb, process.env.MONGODB_MCP_URL))
+        throw new Error('MongoDB is not configured (set Exec Path or URL in Settings)')
+      mcp      = buildMcpClient(cfg.mongodb, process.env.MONGODB_MCP_URL, 'MONGODB_URI')
+      executor = new MongoDbMcpExecutor(mcp, cfg.mongodb.database || process.env.MONGODB_DATABASE || 'mydb')
+      break
+  }
+
+  const agent = new ToolCallingDataAgent(llm, mcp)
+  return new QueryPipeline(security, new ExecuteQueryUseCase(agent), filter, logger, executor)
 }
 
 export function getAvailableDbTypes(): DbType[] {
+  const cfg = readSettings()
   const available: DbType[] = ['demo']
-  if (process.env.POSTGRES_MCP_URL)  available.push('postgres')
-  if (process.env.MYSQL_MCP_URL)     available.push('mysql')
-  if (process.env.SQLSERVER_MCP_URL) available.push('sqlserver')
-  if (process.env.MONGODB_MCP_URL)   available.push('mongodb')
+  // A DB is available if it's enabled AND has either execPath (stdio) or URL (SSE) configured
+  if (cfg.postgres.enabled  && isConfigured(cfg.postgres,  process.env.POSTGRES_MCP_URL))  available.push('postgres')
+  if (cfg.mysql.enabled     && isConfigured(cfg.mysql,     process.env.MYSQL_MCP_URL))     available.push('mysql')
+  if (cfg.sqlserver.enabled && isConfigured(cfg.sqlserver, process.env.SQLSERVER_MCP_URL)) available.push('sqlserver')
+  if (cfg.mongodb.enabled   && isConfigured(cfg.mongodb,   process.env.MONGODB_MCP_URL))   available.push('mongodb')
   return available
 }

@@ -19,7 +19,7 @@ export class SecurityViolationError extends Error {
     public readonly reason?: string,
     public readonly detectedPatterns: string[] = []
   ) {
-    super(`[BLOCKED] Điểm rủi ro: ${riskScore}/100. ${reason ?? ''}`)
+    super(`[BLOCKED] Risk score: ${riskScore}/100. ${reason ?? ''}`)
     this.name = 'SecurityViolationError'
   }
 }
@@ -32,6 +32,8 @@ export class QueryPipeline {
     private readonly logger: IAuditLogger,
     private readonly executor: IQueryExecutor
   ) {}
+
+  getDialect(): string { return this.executor.getDialect() }
 
   async run(userPrompt: string): Promise<PipelineResult> {
     // Layer 1: Security Gate
